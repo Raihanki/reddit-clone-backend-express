@@ -3,10 +3,11 @@ import dotenv from "dotenv";
 import fileUpload from "express-fileupload";
 import cors from "cors";
 import createHttpError from "http-errors";
+import { authenticate } from "./middlewares/authenticate.midleware.js";
 
 // import routes
 import authRoutes from "./routes/auth.route.js";
-import { authenticate } from "./middlewares/authenticate.midleware.js";
+import subredditRoutes from "./routes/subreddit.route.js";
 
 const app = express();
 dotenv.config();
@@ -24,6 +25,7 @@ app.use(fileUpload());
 app.get("/api/v1", authenticate, (req, res) => res.json({ user: req.user }));
 
 app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/subreddits", subredditRoutes);
 
 app.use((req, res, next) => {
   next(createHttpError.NotFound());

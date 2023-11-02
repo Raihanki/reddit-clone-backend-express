@@ -17,6 +17,52 @@ model User {
     email String @unique
     password String
     profilePicture String?
+    moderators Moderators[]
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
+
+    @@map("users")
+}
+
+model Topic {
+    id Int @id @default(autoincrement())
+    title String @unique @db.VarChar(100)
+    slug String @unique @db.VarChar(100)
+    description String
+    subreddits Subreddit[]
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("topics")
+}
+
+model Subreddit {
+    id String @id @default(uuid())
+    name String @unique @db.VarChar(100)
+    slug String @unique @db.VarChar(100)
+    avatar String?
+    description String
+    isPublic Boolean @default(true)
+    allowPost Boolean @default(true)
+    country String?
+    topicId Int
+    topic Topic @relation(fields: [topicId], references: [id])
+    createdBy String
+    moderators Moderators[]
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("subreddits")
+}
+
+model Moderators {
+    id String @id @default(uuid())
+    userId String
+    subredditId String
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    subreddit Subreddit @relation(fields: [subredditId], references: [id], onDelete: Cascade)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("moderators")
 }
