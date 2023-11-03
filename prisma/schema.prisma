@@ -18,6 +18,7 @@ model User {
     password String
     profilePicture String?
     moderators Moderators[]
+    posts Post[]
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
@@ -49,6 +50,7 @@ model Subreddit {
     topic Topic @relation(fields: [topicId], references: [id])
     createdBy String
     moderators Moderators[]
+    posts Post[]
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
@@ -65,4 +67,19 @@ model Moderators {
     updatedAt DateTime @updatedAt
 
     @@map("moderators")
+}
+
+model Post {
+    id String @id @default(uuid())
+    title String
+    slug String @unique @db.VarChar(100)
+    content String @db.Text
+    userId String
+    user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+    subredditId String?
+    subreddit Subreddit? @relation(fields: [subredditId], references: [id], onDelete: Cascade)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("posts")
 }

@@ -9,6 +9,7 @@ import { authenticate } from "./middlewares/authenticate.midleware.js";
 import authRoutes from "./routes/auth.route.js";
 import subredditRoutes from "./routes/subreddit.route.js";
 import topicRoutes from "./routes/topic.route.js";
+import postRoutes from "./routes/post.route.js";
 
 const app = express();
 dotenv.config();
@@ -28,6 +29,7 @@ app.get("/api/v1", authenticate, (req, res) => res.json({ user: req.user }));
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/subreddits", subredditRoutes);
 app.use("/api/v1/topics", topicRoutes);
+app.use("/api/v1/posts", postRoutes);
 
 app.use((req, res, next) => {
   next(createHttpError.NotFound());
