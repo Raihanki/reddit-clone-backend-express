@@ -7,7 +7,7 @@ const createSubredditValidation = Joi.object({
     .max(100)
     .required()
     .external(async (value) => {
-      const checkName = prisma.subreddit.findUnique({
+      const checkName = await prisma.subreddit.findUnique({
         where: { name: value },
       });
       if (checkName) {

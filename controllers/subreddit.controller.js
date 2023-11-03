@@ -17,6 +17,11 @@ export const index = async (req, res, next) => {
       orderBy: {
         [sort]: order,
       },
+      include: {
+        topic: {
+          select: { id: true, title: true, slug: true },
+        },
+      },
     });
 
     res.status(200).json({
@@ -72,6 +77,13 @@ export const update = async (req, res, next) => {
       context: { slug },
     });
     data.slug = data.name.toLowerCase().split(" ").join("-");
+
+    const topic = await prisma.topic.findUnique({
+      where: { id: data.topicId },
+    });
+    if (!topic) {
+      throw createHttpError.BadRequest("Topic not found");
+    }
 
     const subreddit = await prisma.subreddit.findUnique({
       where: { slug },
