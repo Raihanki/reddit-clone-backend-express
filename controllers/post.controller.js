@@ -54,6 +54,13 @@ export const show = async (req, res, next) => {
     const post = await prisma.post.findUnique({
       where: { slug: postSlug },
       include: {
+        comments: {
+          include: {
+            user: {
+              select: { id: true, username: true, profilePicture: true },
+            },
+          },
+        },
         subreddit: {
           select: { id: true, name: true, slug: true },
           where: {
