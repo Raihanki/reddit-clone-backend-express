@@ -10,6 +10,7 @@ import authRoutes from "./routes/auth.route.js";
 import subredditRoutes from "./routes/subreddit.route.js";
 import topicRoutes from "./routes/topic.route.js";
 import postRoutes from "./routes/post.route.js";
+import voteRoutes from "./routes/vote.route.js";
 
 const app = express();
 dotenv.config();
@@ -30,6 +31,7 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/subreddits", subredditRoutes);
 app.use("/api/v1/topics", topicRoutes);
 app.use("/api/v1/posts", postRoutes);
+app.use("/api/v1/votes", voteRoutes);
 
 app.use((req, res, next) => {
   next(createHttpError.NotFound());

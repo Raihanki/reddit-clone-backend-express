@@ -20,6 +20,7 @@ model User {
     moderators Moderators[]
     posts Post[]
     comments Comment[]
+    votes Vote[]
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
@@ -80,6 +81,7 @@ model Post {
     subredditId String?
     subreddit Subreddit? @relation(fields: [subredditId], references: [id], onDelete: Cascade)
     comments Comment[]
+    votes Vote[]
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
@@ -100,4 +102,17 @@ model Comment {
     updatedAt DateTime @updatedAt
 
     @@map("comments")
+}
+
+model Vote {
+    id String @id @default(uuid())
+    userId String
+    user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+    postId String
+    post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+    voteType String @db.VarChar(10) //up or down
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@map("votes")
 }

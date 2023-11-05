@@ -26,9 +26,24 @@ export const index = async (req, res, next) => {
         user: {
           select: { id: true, username: true },
         },
+        votes: {
+          select: { voteType: true },
+        },
       },
     });
     const postCount = await prisma.post.count();
+
+    posts.forEach((post) => {
+      const upVotes = post.votes.filter(
+        (vote) => vote.voteType === "up"
+      ).length;
+      const downVotes = post.votes.filter(
+        (vote) => vote.voteType === "down"
+      ).length;
+      post.upVotes = upVotes;
+      post.downVotes = downVotes;
+      delete post.votes;
+    });
 
     res.status(200).json({
       status: 200,
@@ -70,12 +85,23 @@ export const show = async (req, res, next) => {
         user: {
           select: { id: true, username: true, profilePicture: true },
         },
+        votes: {
+          select: { voteType: true },
+        },
       },
     });
 
     if (!post) {
       throw createHttpError.NotFound("Post not found");
     }
+
+    const upVotes = post.votes.filter((vote) => vote.voteType === "up").length;
+    const downVotes = post.votes.filter(
+      (vote) => vote.voteType === "down"
+    ).length;
+    post.upVotes = upVotes;
+    post.downVotes = downVotes;
+    delete post.votes;
 
     res.status(200).json({
       status: 200,
