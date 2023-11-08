@@ -5,6 +5,8 @@ import {
   show,
   store,
   update,
+  getAllPost,
+  getMyPost,
 } from "../controllers/post.controller.js";
 import {
   store as storeComment,
@@ -15,6 +17,8 @@ import { authenticate } from "../middlewares/authenticate.midleware.js";
 
 const router = express.Router();
 
+router.get("/", getAllPost);
+router.get("/myPost", authenticate, getMyPost);
 router.get("/:subreddit", index);
 router.get("/:subreddit/:post", show);
 router.post("/:subreddit", authenticate, store);

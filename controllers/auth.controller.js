@@ -32,14 +32,23 @@ export const register = async (req, res, next) => {
     data.username = data.username.toLowerCase();
 
     const user = await prisma.user.create({ data });
+    delete user.password;
 
     const accessToken = await generateAccessToken(user.id);
     const refreshToken = await generateRefreshToken(user.id);
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      path: "/api/v1/auth/refresh-token",
+    });
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      path: "/api/v1",
+    });
     return res.status(201).json({
       status: 201,
       message: "User created successfully",
-      accessToken,
-      refreshToken,
+      user,
     });
   } catch (err) {
     if (err.isJoi === true) err.status = 422;
@@ -61,7 +70,7 @@ export const login = async (req, res, next) => {
       where: { email: data.email },
     });
     if (!user) {
-      throw createHttpError.BadRequest("Invalida email or password");
+      throw createHttpError.BadRequest("Invalid email or password");
     }
 
     const checkPassword = await bcrypt.compare(data.password, user.password);
@@ -72,11 +81,20 @@ export const login = async (req, res, next) => {
     const accessToken = await generateAccessToken(user.id);
     const refreshToken = await generateRefreshToken(user.id);
 
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      path: "/api/v1/auth/refresh-token",
+    });
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      path: "/api/v1",
+    });
+
+    delete user.password;
     return res.status(200).json({
       status: 200,
       message: "User logged in successfully",
-      accessToken,
-      refreshToken,
+      user,
     });
   } catch (err) {
     next(err);
@@ -85,7 +103,7 @@ export const login = async (req, res, next) => {
 
 export const refreshToken = async (req, res, next) => {
   try {
-    const data = req.body.refreshToken;
+    const data = req.cookies.refreshToken;
     if (!data) {
       throw createHttpError.BadRequest("Refresh token is required");
     }
@@ -94,11 +112,18 @@ export const refreshToken = async (req, res, next) => {
     const accessToken = await generateAccessToken(refreshTokenPayload);
     const refreshToken = await generateRefreshToken(refreshTokenPayload);
 
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      path: "/api/v1/auth/refresh-token",
+    });
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      path: "/api/v1",
+    });
+
     res.status(200).json({
       status: 200,
       message: "Token refreshed successfully",
-      accessToken,
-      refreshToken,
     });
   } catch (err) {
     next(err);
@@ -106,5 +131,14 @@ export const refreshToken = async (req, res, next) => {
 };
 
 export const logout = (req, res, next) => {
-  res.end("logout");
+  try {
+    res.clearCookie("refreshToken", { path: "/api/v1/auth/refresh-token" });
+    res.clearCookie("accessToken", { path: "/api/v1" });
+    res.status(200).json({
+      status: 200,
+      message: "User logged out successfully",
+    });
+  } catch (err) {
+    next(err);
+  }
 };

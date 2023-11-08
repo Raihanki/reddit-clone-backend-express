@@ -40,6 +40,31 @@ export const index = async (req, res, next) => {
   }
 };
 
+export const show = async (req, res, next) => {
+  try {
+    const slug = req.params.slug;
+    const subreddit = await prisma.subreddit.findUnique({
+      where: { slug },
+      include: {
+        topic: {
+          select: { id: true, title: true, slug: true },
+        },
+      },
+    });
+
+    if (!subreddit) {
+      throw createHttpError.NotFound("Subreddit not found");
+    }
+
+    res.status(200).json({
+      status: 200,
+      data: subreddit,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const store = async (req, res, next) => {
   try {
     const data = await createSubredditValidation.validateAsync(req.body);

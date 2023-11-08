@@ -2,6 +2,131 @@ import createHttpError from "http-errors";
 import prisma from "../config/database.js";
 import postValidation from "../validations/post.validation.js";
 
+export const getAllPost = async (req, res, next) => {
+  try {
+    const page = req.query.page || 1;
+    const limit = req.query.limit || 10;
+    const offset = (page - 1) * limit;
+    const order = req.query.order || "desc";
+    const sort = req.query.sort || "createdAt";
+
+    const posts = await prisma.post.findMany({
+      skip: offset,
+      take: limit,
+      orderBy: {
+        [sort]: order,
+      },
+      include: {
+        subreddit: {
+          select: { id: true, name: true, slug: true },
+          where: { isPublic: true },
+        },
+        user: {
+          select: { id: true, username: true },
+        },
+        votes: {
+          select: { voteType: true },
+        },
+        comments: {
+          select: { id: true },
+        },
+      },
+    });
+    const postCount = await prisma.post.count();
+
+    posts.forEach((post) => {
+      const upVotes = post.votes.filter(
+        (vote) => vote.voteType === "up"
+      ).length;
+      const downVotes = post.votes.filter(
+        (vote) => vote.voteType === "down"
+      ).length;
+      const comment = post.comments.length;
+      post.upVotes = upVotes;
+      post.downVotes = downVotes;
+      post.commentCount = comment;
+      delete post.votes;
+    });
+
+    res.status(200).json({
+      status: 200,
+      data: posts,
+      meta: {
+        totalRows: postCount,
+        page,
+        limit,
+        offset,
+        totalPages: Math.ceil(postCount / limit),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getMyPost = async (req, res, next) => {
+  try {
+    const page = req.query.page || 1;
+    const limit = req.query.limit || 10;
+    const offset = (page - 1) * limit;
+    const order = req.query.order || "desc";
+    const sort = req.query.sort || "createdAt";
+
+    const posts = await prisma.post.findMany({
+      skip: offset,
+      take: limit,
+      orderBy: {
+        [sort]: order,
+      },
+      where: { userId: req.user.id },
+      include: {
+        subreddit: {
+          select: { id: true, name: true, slug: true },
+          where: { isPublic: true },
+        },
+        user: {
+          select: { id: true, username: true },
+        },
+        votes: {
+          select: { voteType: true },
+        },
+        comments: {
+          select: { id: true },
+        },
+      },
+    });
+    const postCount = await prisma.post.count();
+
+    posts.forEach((post) => {
+      const upVotes = post.votes.filter(
+        (vote) => vote.voteType === "up"
+      ).length;
+      const downVotes = post.votes.filter(
+        (vote) => vote.voteType === "down"
+      ).length;
+      const comment = post.comments.length;
+      post.upVotes = upVotes;
+      post.downVotes = downVotes;
+      post.commentCount = comment;
+      delete post.votes;
+    });
+
+    res.status(200).json({
+      status: 200,
+      data: posts,
+      meta: {
+        totalRows: postCount,
+        page,
+        limit,
+        offset,
+        totalPages: Math.ceil(postCount / limit),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const index = async (req, res, next) => {
   try {
     const page = req.query.page || 1;
@@ -96,11 +221,13 @@ export const show = async (req, res, next) => {
     }
 
     const upVotes = post.votes.filter((vote) => vote.voteType === "up").length;
+    const commentCount = post.comments.length;
     const downVotes = post.votes.filter(
       (vote) => vote.voteType === "down"
     ).length;
     post.upVotes = upVotes;
     post.downVotes = downVotes;
+    post.commentCount = commentCount;
     delete post.votes;
 
     res.status(200).json({
