@@ -135,12 +135,15 @@ export const index = async (req, res, next) => {
     const order = req.query.order || "desc";
     const sort = req.query.sort || "createdAt";
 
+    const subreddit = await prisma.subreddit.findUnique({where: {slug: req.params.subreddit}})
+
     const posts = await prisma.post.findMany({
       skip: offset,
       take: limit,
       orderBy: {
         [sort]: order,
       },
+      where: {subredditId: subreddit.id},
       include: {
         subreddit: {
           select: { id: true, name: true, slug: true },
