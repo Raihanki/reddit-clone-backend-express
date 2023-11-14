@@ -6,7 +6,8 @@ export const authenticate = async (req, res, next) => {
   try {
     const accessToken = req.cookies.accessToken;
     if (!accessToken) {
-      throw createHttpError.Unauthorized();
+      req.user = null;
+      return next();
     }
 
     const user = await new Promise((resolve, reject) => {

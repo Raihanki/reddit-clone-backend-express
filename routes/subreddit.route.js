@@ -7,13 +7,14 @@ import {
   update,
 } from "../controllers/subreddit.controller.js";
 import { authenticate } from "../middlewares/authenticate.midleware.js";
+import { requireAuth } from "../middlewares/requireAuth.middleware.js";
 
 const router = express.Router();
 
-router.get("/", index);
-router.get("/:slug", show);
-router.post("/", authenticate, store);
-router.put("/:slug", authenticate, update);
-router.delete("/:slug", authenticate, destroy);
+router.get("/", authenticate, index);
+router.get("/:slug", authenticate, show);
+router.post("/", [authenticate, requireAuth], store);
+router.put("/:slug", [authenticate, requireAuth], update);
+router.delete("/:slug", [authenticate, requireAuth], destroy);
 
 export default router;

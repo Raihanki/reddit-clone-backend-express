@@ -5,6 +5,7 @@ import cors from "cors";
 import createHttpError from "http-errors";
 import { authenticate } from "./middlewares/authenticate.midleware.js";
 import cookieParser from "cookie-parser";
+import { v2 as cloudinary } from "cloudinary";
 
 // import routes
 import authRoutes from "./routes/auth.route.js";
@@ -24,7 +25,17 @@ app.use(
 );
 app.use(cookieParser());
 app.use(express.json());
-app.use(fileUpload());
+app.use(
+  fileUpload({
+    useTempFiles: true,
+  })
+);
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true,
+});
 
 // route
 app.get("/api/v1", authenticate, (req, res) => res.json({ user: req.user }));

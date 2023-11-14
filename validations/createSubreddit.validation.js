@@ -19,6 +19,7 @@ const createSubredditValidation = Joi.object({
   allowPost: Joi.boolean(),
   country: Joi.string().required(),
   topicId: Joi.number().required(),
+  avatar: Joi.any(),
 }).options({ abortEarly: false });
 
 export default createSubredditValidation;

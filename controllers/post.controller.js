@@ -1,6 +1,7 @@
 import createHttpError from "http-errors";
 import prisma from "../config/database.js";
 import postValidation from "../validations/post.validation.js";
+import { authenticate } from "../middlewares/authenticate.midleware.js";
 
 export const getAllPost = async (req, res, next) => {
   try {
@@ -135,7 +136,9 @@ export const index = async (req, res, next) => {
     const order = req.query.order || "desc";
     const sort = req.query.sort || "createdAt";
 
-    const subreddit = await prisma.subreddit.findUnique({where: {slug: req.params.subreddit}})
+    const subreddit = await prisma.subreddit.findUnique({
+      where: { slug: req.params.subreddit },
+    });
 
     const posts = await prisma.post.findMany({
       skip: offset,
@@ -143,7 +146,7 @@ export const index = async (req, res, next) => {
       orderBy: {
         [sort]: order,
       },
-      where: {subredditId: subreddit.id},
+      where: { subredditId: subreddit.id },
       include: {
         subreddit: {
           select: { id: true, name: true, slug: true },
@@ -203,9 +206,10 @@ export const show = async (req, res, next) => {
               select: { id: true, username: true, profilePicture: true },
             },
           },
+          orderBy: { createdAt: "desc" },
         },
         subreddit: {
-          select: { id: true, name: true, slug: true },
+          select: { id: true, name: true, slug: true, createdBy: true },
           where: {
             AND: [{ isPublic: true }, { slug: subredditSlug }],
           },
@@ -218,6 +222,22 @@ export const show = async (req, res, next) => {
         },
       },
     });
+
+    // console.log(await authenticate(req, res, next));
+    if (req.user) {
+      const myVote = await prisma.vote.findFirst({
+        where: {
+          AND: [{ userId: req.user.id }, { postId: post.id }],
+        },
+      });
+      if (!myVote) {
+        post.myVote = null;
+      } else {
+        post.myVote = myVote.voteType;
+      }
+    } else {
+      post.myVote = null;
+    }
 
     if (!post) {
       throw createHttpError.NotFound("Post not found");
@@ -339,6 +359,25 @@ export const destroy = async (req, res, next) => {
     res.status(200).json({
       status: 200,
       message: "Post deleted successfully",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getReplyComment = async (req, res, next) => {
+  try {
+    const replies = await prisma.comment.findMany({
+      where: { parentId: req.params.comment },
+      include: {
+        user: {
+          select: { id: true, username: true, profilePicture: true },
+        },
+      },
+    });
+    res.status(200).json({
+      status: 200,
+      data: replies,
     });
   } catch (err) {
     next(err);

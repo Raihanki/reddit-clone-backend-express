@@ -7,6 +7,7 @@ import {
   update,
   getAllPost,
   getMyPost,
+  getReplyComment,
 } from "../controllers/post.controller.js";
 import {
   store as storeComment,
@@ -14,18 +15,32 @@ import {
   destroy as deleteComment,
 } from "../controllers/comment.controller.js";
 import { authenticate } from "../middlewares/authenticate.midleware.js";
+import { requireAuth } from "../middlewares/requireAuth.middleware.js";
 
 const router = express.Router();
 
-router.get("/", getAllPost);
-router.get("/myPost", authenticate, getMyPost);
-router.get("/:subreddit", index);
-router.get("/:subreddit/:post", show);
-router.post("/:subreddit", authenticate, store);
-router.post("/:subreddit/:post/comments", authenticate, storeComment);
-router.put("/:subreddit/:post", authenticate, update);
-router.put("/:subreddit/:post/comments/:comment", authenticate, updateComment);
-router.delete("/:subreddit/:post", authenticate, destroy);
+router.get("/", authenticate, getAllPost);
+router.get("/myPost", [authenticate], getMyPost);
+router.get(
+  "/replyComment/:comment",
+  [authenticate, requireAuth],
+  getReplyComment
+);
+router.get("/:subreddit", authenticate, index);
+router.get("/:subreddit/:post", authenticate, show);
+router.post("/:subreddit", [authenticate, requireAuth], store);
+router.post(
+  "/:subreddit/:post/comments",
+  [authenticate, requireAuth],
+  storeComment
+);
+router.put("/:subreddit/:post", [authenticate, requireAuth], update);
+router.put(
+  "/:subreddit/:post/comments/:comment",
+  [authenticate, requireAuth],
+  updateComment
+);
+router.delete("/:subreddit/:post", [authenticate, requireAuth], destroy);
 router.delete(
   "/:subreddit/:post/comments/:comment",
   authenticate,

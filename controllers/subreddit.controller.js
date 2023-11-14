@@ -2,6 +2,8 @@ import createHttpError from "http-errors";
 import prisma from "../config/database.js";
 import createSubredditValidation from "../validations/createSubreddit.validation.js";
 import updateSubredditValidation from "../validations/updateSubreddit.validation.js";
+import { v2 as cloudinary } from "cloudinary";
+import { validateMIMEType } from "validate-image-type";
 
 export const index = async (req, res, next) => {
   const page = parseInt(req.query.page) || 1;
@@ -24,6 +26,11 @@ export const index = async (req, res, next) => {
       },
     });
 
+    subreddits.map((s) => {
+      s.avatar = s.avatar
+        ? `https://res.cloudinary.com/dvyru6uni/image/upload/v1699947307/${s.avatar}`
+        : null;
+    });
     res.status(200).json({
       status: 200,
       data: subreddits,
@@ -56,6 +63,9 @@ export const show = async (req, res, next) => {
       throw createHttpError.NotFound("Subreddit not found");
     }
 
+    subreddit.avatar = subreddit.avatar
+      ? `https://res.cloudinary.com/dvyru6uni/image/upload/v1699947307/${subreddit.avatar}`
+      : null;
     res.status(200).json({
       status: 200,
       data: subreddit,
@@ -68,6 +78,23 @@ export const show = async (req, res, next) => {
 export const store = async (req, res, next) => {
   try {
     const data = await createSubredditValidation.validateAsync(req.body);
+    const validateImage = await validateMIMEType(
+      req.files.avatar.tempFilePath,
+      {
+        allowMimeTypes: ["image/jpeg", "image/png", "image/jpg"],
+      }
+    );
+    if (!validateImage.ok) {
+      return next(createHttpError.NotAcceptable("File type not supported"));
+    }
+
+    const uploadAvatar = await cloudinary.uploader.upload(
+      req.files.avatar.tempFilePath,
+      {
+        folder: "RedditClone/Subreddit",
+      }
+    );
+    console.log(uploadAvatar);
     const topic = await prisma.topic.findUnique({
       where: { id: data.topicId },
     });
@@ -76,6 +103,7 @@ export const store = async (req, res, next) => {
     }
 
     data.createdBy = req.user.username;
+    data.avatar = uploadAvatar.public_id;
     data.slug = data.name.toLowerCase().split(" ").join("-");
     const subreddit = await prisma.subreddit.create({ data });
     await prisma.moderators.create({
@@ -143,6 +171,7 @@ export const destroy = async (req, res, next) => {
       throw createHttpError.NotFound("Subreddit not found");
     }
 
+    await cloudinary.uploader.destroy(subreddit.avatar);
     await prisma.subreddit.delete({
       where: { slug },
     });
