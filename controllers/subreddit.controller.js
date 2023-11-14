@@ -207,3 +207,73 @@ export const destroy = async (req, res, next) => {
     next(err);
   }
 };
+
+export const subscribe = async (req, res, next) => {
+  try {
+    const slug = req.params.slug;
+
+    const subreddit = await prisma.subreddit.findUnique({
+      where: { slug },
+    });
+    if (!subreddit) {
+      throw createHttpError.NotFound("Subreddit not found");
+    }
+
+    const subscribed = await prisma.subscribe.findFirst({
+      where: {
+        AND: [{ userId: req.user.id }, { subredditId: subreddit.id }],
+      },
+    });
+    if (subscribed) {
+      throw createHttpError.Conflict("Already subscribed");
+    }
+
+    const subscribe = await prisma.subscribe.create({
+      data: {
+        userId: req.user.id,
+        subredditId: subreddit.id,
+      },
+    });
+
+    res.status(200).json({
+      status: 200,
+      message: "Subscribed successfully",
+      data: subscribe,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const unsubscribe = async (req, res, next) => {
+  try {
+    const slug = req.params.slug;
+
+    const subreddit = await prisma.subreddit.findUnique({
+      where: { slug },
+    });
+    if (!subreddit) {
+      throw createHttpError.NotFound("Subreddit not found");
+    }
+
+    const subscribe = await prisma.subscribe.findFirst({
+      where: {
+        AND: [{ userId: req.user.id }, { subredditId: subreddit.id }],
+      },
+    });
+    if (!subscribe) {
+      throw createHttpError.NotFound("Subscribe not found");
+    }
+
+    await prisma.subscribe.delete({
+      where: { id: subscribe.id },
+    });
+
+    res.status(200).json({
+      status: 200,
+      message: "Unsubscribed successfully",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
