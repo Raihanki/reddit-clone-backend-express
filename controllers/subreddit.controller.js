@@ -78,12 +78,20 @@ export const show = async (req, res, next) => {
 export const store = async (req, res, next) => {
   try {
     const data = await createSubredditValidation.validateAsync(req.body);
+    if (req.files.avatar === undefined) {
+      return next(createHttpError.NotAcceptable("File not found"));
+    }
+
     const validateImage = await validateMIMEType(
       req.files.avatar.tempFilePath,
       {
         allowMimeTypes: ["image/jpeg", "image/png", "image/jpg"],
       }
     );
+    const validateImageSize = req.files.avatar.size < 2000000;
+    if (!validateImageSize) {
+      return next(createHttpError.NotAcceptable("File size too large"));
+    }
     if (!validateImage.ok) {
       return next(createHttpError.NotAcceptable("File type not supported"));
     }
@@ -94,7 +102,7 @@ export const store = async (req, res, next) => {
         folder: "RedditClone/Subreddit",
       }
     );
-    console.log(uploadAvatar);
+
     const topic = await prisma.topic.findUnique({
       where: { id: data.topicId },
     });
@@ -129,6 +137,7 @@ export const update = async (req, res, next) => {
     const data = await updateSubredditValidation.validateAsync(req.body, {
       context: { slug },
     });
+
     data.slug = data.name.toLowerCase().split(" ").join("-");
 
     const topic = await prisma.topic.findUnique({
@@ -145,6 +154,19 @@ export const update = async (req, res, next) => {
       throw createHttpError.NotFound("Subreddit not found");
     }
 
+    if (req.files.avatar === undefined) {
+      data.avatar = subreddit.avatar;
+    } else {
+      subreddit.avatar && (await cloudinary.uploader.destroy(subreddit.avatar));
+      const uploadAvatar = await cloudinary.uploader.upload(
+        req.files.avatar.tempFilePath,
+        {
+          folder: "RedditClone/Subreddit",
+        }
+      );
+      data.avatar = uploadAvatar.public_id;
+    }
+
     await prisma.subreddit.update({
       where: { slug },
       data,
@@ -153,6 +175,7 @@ export const update = async (req, res, next) => {
     res.status(200).json({
       status: 200,
       message: "Subreddit updated successfully",
+      slug: data.slug,
     });
   } catch (err) {
     if (err.isJoi === true) err.status = 422;

@@ -1,7 +1,8 @@
 import createHttpError from "http-errors";
 import prisma from "../config/database.js";
 import postValidation from "../validations/post.validation.js";
-import { authenticate } from "../middlewares/authenticate.midleware.js";
+import { validateMIMEType } from "validate-image-type";
+import { v2 as cloudinary } from "cloudinary";
 
 export const getAllPost = async (req, res, next) => {
   try {
@@ -43,6 +44,9 @@ export const getAllPost = async (req, res, next) => {
         (vote) => vote.voteType === "down"
       ).length;
       const comment = post.comments.length;
+      post.image = post.image
+        ? `https://res.cloudinary.com/dvyru6uni/image/upload/v1699947307/${post.image}`
+        : null;
       post.upVotes = upVotes;
       post.downVotes = downVotes;
       post.commentCount = comment;
@@ -106,6 +110,9 @@ export const getMyPost = async (req, res, next) => {
         (vote) => vote.voteType === "down"
       ).length;
       const comment = post.comments.length;
+      post.image = post.image
+        ? `https://res.cloudinary.com/dvyru6uni/image/upload/v1699947307/${post.image}`
+        : null;
       post.upVotes = upVotes;
       post.downVotes = downVotes;
       post.commentCount = comment;
@@ -140,6 +147,10 @@ export const index = async (req, res, next) => {
       where: { slug: req.params.subreddit },
     });
 
+    if (!subreddit) {
+      throw createHttpError.NotFound("Subreddit not found");
+    }
+
     const posts = await prisma.post.findMany({
       skip: offset,
       take: limit,
@@ -171,6 +182,9 @@ export const index = async (req, res, next) => {
       const downVotes = post.votes.filter(
         (vote) => vote.voteType === "down"
       ).length;
+      post.image = post.image
+        ? `https://res.cloudinary.com/dvyru6uni/image/upload/v1699947307/${post.image}`
+        : null;
       post.upVotes = upVotes;
       post.downVotes = downVotes;
       delete post.votes;
@@ -248,6 +262,9 @@ export const show = async (req, res, next) => {
     const downVotes = post.votes.filter(
       (vote) => vote.voteType === "down"
     ).length;
+    post.image = post.image
+      ? `https://res.cloudinary.com/dvyru6uni/image/upload/v1699947307/${post.image}`
+      : null;
     post.upVotes = upVotes;
     post.downVotes = downVotes;
     post.commentCount = commentCount;
@@ -270,6 +287,30 @@ export const store = async (req, res, next) => {
     });
     if (!subreddit) {
       throw createHttpError.NotFound("Subreddit not found");
+    }
+
+    if (req.files.image !== undefined) {
+      const validateImage = await validateMIMEType(
+        req.files.image.tempFilePath,
+        {
+          allowMimeTypes: ["image/jpeg", "image/png", "image/jpg"],
+        }
+      );
+      if (!validateImage.ok) {
+        return next(createHttpError.NotAcceptable("File type not supported"));
+      }
+      const validateImageSize = req.files.image.size < 2000000;
+      if (!validateImageSize) {
+        return next(createHttpError.NotAcceptable("File size too large"));
+      }
+
+      const uploadPost = await cloudinary.uploader.upload(
+        req.files.image.tempFilePath,
+        {
+          folder: "RedditClone/Post",
+        }
+      );
+      data.image = uploadPost.public_id;
     }
 
     data.subredditId = subreddit.id;
@@ -350,6 +391,10 @@ export const destroy = async (req, res, next) => {
 
     if (post.userId !== req.user.id) {
       throw createHttpError.Forbidden("You are not allowed to do this action");
+    }
+
+    if (post.image !== null) {
+        await cloudinary.uploader.destroy(post.image);
     }
 
     await prisma.post.delete({

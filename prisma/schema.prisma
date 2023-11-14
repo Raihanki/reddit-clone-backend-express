@@ -82,6 +82,7 @@ model Post {
     subreddit Subreddit? @relation(fields: [subredditId], references: [id], onDelete: Cascade)
     comments Comment[]
     votes Vote[]
+    image String?
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
