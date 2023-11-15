@@ -21,11 +21,7 @@ const router = express.Router();
 
 router.get("/", authenticate, getAllPost);
 router.get("/myPost", [authenticate], getMyPost);
-router.get(
-  "/replyComment/:comment",
-  [authenticate, requireAuth],
-  getReplyComment
-);
+router.get("/replyComment/:comment", [authenticate], getReplyComment);
 router.get("/:subreddit", authenticate, index);
 router.get("/:subreddit/:post", authenticate, show);
 router.post("/:subreddit", [authenticate, requireAuth], store);

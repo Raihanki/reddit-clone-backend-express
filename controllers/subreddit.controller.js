@@ -23,6 +23,9 @@ export const index = async (req, res, next) => {
         topic: {
           select: { id: true, title: true, slug: true },
         },
+        subscribes: {
+          select: { userId: true },
+        },
       },
     });
 
@@ -30,6 +33,8 @@ export const index = async (req, res, next) => {
       s.avatar = s.avatar
         ? `https://res.cloudinary.com/dvyru6uni/image/upload/v1699947307/${s.avatar}`
         : null;
+      s.subscribed = s.subscribes.some((s) => s.userId === req.user?.id);
+      delete s.subscribes;
     });
     res.status(200).json({
       status: 200,
@@ -56,6 +61,9 @@ export const show = async (req, res, next) => {
         topic: {
           select: { id: true, title: true, slug: true },
         },
+        subscribes: {
+          select: { userId: true },
+        },
       },
     });
 
@@ -66,6 +74,11 @@ export const show = async (req, res, next) => {
     subreddit.avatar = subreddit.avatar
       ? `https://res.cloudinary.com/dvyru6uni/image/upload/v1699947307/${subreddit.avatar}`
       : null;
+    subreddit.subscribed = subreddit.subscribes.some(
+      (s) => s.userId === req.user?.id
+    );
+    subreddit.totalSubs = subreddit.subscribes.length;
+    delete subreddit.subscribes;
     res.status(200).json({
       status: 200,
       data: subreddit,

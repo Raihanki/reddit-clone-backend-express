@@ -12,10 +12,6 @@ export const mySubreddit = async (req, res, next) => {
       },
     });
 
-    if (!mySubreddit) {
-      throw createHttpError.NotFound("Subreddit not found");
-    }
-
     mySubreddit.map((s) => {
       s.avatar = s.avatar
         ? `https://res.cloudinary.com/dvyru6uni/image/upload/v1699947307/${s.avatar}`
@@ -24,6 +20,37 @@ export const mySubreddit = async (req, res, next) => {
     res.status(200).json({
       status: 200,
       data: mySubreddit,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const mySubscibtion = async (req, res, next) => {
+  try {
+    const mySubscibtion = await prisma.subreddit.findMany({
+      where: { subscribes: { some: { userId: req.user.id } } },
+      include: {
+        topic: {
+          select: { id: true, title: true, slug: true },
+        },
+        subscribes: {
+          select: { userId: true },
+        },
+      },
+    });
+
+    mySubscibtion.map((s) => {
+      s.avatar = s.avatar
+        ? `https://res.cloudinary.com/dvyru6uni/image/upload/v1699947307/${s.avatar}`
+        : null;
+      s.subscribed = s.subscribes.some((s) => s.userId === req.user?.id);
+      delete s.subscribes;
+    });
+
+    res.status(200).json({
+      status: 200,
+      data: mySubscibtion,
     });
   } catch (err) {
     next(err);
